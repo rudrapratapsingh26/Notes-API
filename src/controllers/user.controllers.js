@@ -6,13 +6,16 @@ import { asyncHandler } from "../utils/async-handler.js";
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
        const user = await User.findById(userId);
+       if (!user) {
+        throw new ApiError(404, "User not found while generating tokens");
+       }
        const accessToken = user.generateAccessToken();
        const refreshToken = user.generateRefreshToken();
          user.refreshToken = refreshToken;
          await user.save({validateBeforeSave: false});
          return { accessToken, refreshToken };
     } catch (error) {
-        throw new ApiError(500, "Failed to generate tokens");
+        throw new ApiError(error?.statusCode || 500, error?.message || "Failed to generate tokens");
     }
 }
 
@@ -28,3 +31,33 @@ export const registerUser = asyncHandler(async (req, res) => {
     return res.status(201).json(new ApiResponse(201, { id: user._id, email: user.email, username: user.username }, "User registered successfully"));
 });
 
+export const loginUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(400, "Invalid email or password");
+  }
+  const isPasswordValid = await user.comparePassword(password);
+  if (!isPasswordValid) {
+    throw new ApiError(400, "Invalid email or password");
+  }
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id
+  );
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, { accessToken, refreshToken }, "Login successful")
+    );
+});
+
+export const logoutUser = asyncHandler(async (req, res) => {
+    const { userId } = req.user;
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+    user.refreshToken = null;
+    await user.save({ validateBeforeSave: false });
+    return res.status(200).json(new ApiResponse(200, null, "Logout successful"));
+});
