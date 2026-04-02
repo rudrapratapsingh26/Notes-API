@@ -21,13 +21,15 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 export const registerUser = asyncHandler(async (req, res) => {
     const { username, email, password } = req.body;
+    if(!username || !email || !password) {
+        throw new ApiError(400, "Username, email and password are required");
+    }
     const existingUser = await User.findOne({ $or: [{username},{email}] });
     if (existingUser) {
-        throw new ApiError(400, "Email already in use");
+        throw new ApiError(400, "Username or email already in use");
     }
     const user = new User({ username, email, password });
     await user.save();
-    const { tempTokenUnHashed, tempTokenHashed, tokenExpiry } =user.generateTemporaryToken();
     return res.status(201).json(new ApiResponse(201, { id: user._id, email: user.email, username: user.username }, "User registered successfully"));
 });
 
@@ -52,12 +54,13 @@ export const loginUser = asyncHandler(async (req, res) => {
 });
 
 export const logoutUser = asyncHandler(async (req, res) => {
-    const { userId } = req.user;
-    const user = await User.findById(userId);
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
-    user.refreshToken = null;
-    await user.save({ validateBeforeSave: false });
-    return res.status(200).json(new ApiResponse(200, null, "Logout successful"));
+  if (!req.user) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  req.user.refreshToken = null;
+  await req.user.save({ validateBeforeSave: false });
+
+  return res.status(200).json(new ApiResponse(200, null, "Logout successful"));
 });
+
