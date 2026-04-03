@@ -2,6 +2,7 @@ import {User} from "../models/user.models.js";
 import { ApiResponse } from "../utils/api-response.js"; 
 import { ApiError } from "../utils/api-errors.js";
 import { asyncHandler } from "../utils/async-handler.js";
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
