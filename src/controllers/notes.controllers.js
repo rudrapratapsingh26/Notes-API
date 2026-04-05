@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Note } from "../models/note.models.js";
+import { Note } from "../models/notes.models.js";
 import { ApiError } from "../utils/api-errors.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/async-handler.js";
